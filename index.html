@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库存查询系统</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft YaHei',Arial,sans-serif;background:#f5f6fa;color:#333;font-size:13px}
+.header{background:#fff;border-bottom:1px solid #e8e8e8;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px}
+.header-logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#f5871f;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700}
+.header-title{font-size:16px;font-weight:600;color:#222}
+.header-nav{display:flex;gap:24px}
+.nav-item{color:#666;cursor:pointer;padding:4px 0;border-bottom:2px solid transparent;font-size:13px}
+.nav-item.active{color:#f5871f;border-bottom-color:#f5871f;font-weight:500}
+.nav-item a{color:inherit;text-decoration:none}
+.main{padding:20px 24px}
+.filter-card{background:#fff;border-radius:8px;padding:20px 24px;margin-bottom:16px;border:0.5px solid #eee}
+.filter-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:12px}
+.filter-row:last-child{margin-bottom:0}
+.filter-row.row2{grid-template-columns:repeat(4,1fr) auto auto auto}
+.filter-item{display:flex;flex-direction:column;gap:4px}
+.filter-label{font-size:12px;color:#666}
+.filter-item input,.filter-item select{height:32px;border:1px solid #d9d9d9;border-radius:4px;padding:0 10px;font-size:12px;color:#333;background:#fff;outline:none;transition:border .2s}
+.filter-item input:focus,.filter-item select:focus{border-color:#f5871f}
+.btn-group{display:flex;align-items:flex-end;gap:8px}
+.btn{height:32px;padding:0 18px;border-radius:4px;border:none;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:#f5871f;color:#fff}
+.btn-default{background:#fff;color:#555;border:1px solid #d9d9d9}
+.btn-export{background:#fff;color:#f5871f;border:1px solid #f5871f}
+.btn-sm{height:28px;padding:0 12px;font-size:12px}
+.summary-bar{background:#fff;border-radius:8px;padding:14px 24px;margin-bottom:12px;display:flex;align-items:center;gap:32px;border:0.5px solid #eee}
+.summary-item{display:flex;flex-direction:column;gap:2px}
+.summary-label{font-size:11px;color:#999}
+.summary-value{font-size:18px;font-weight:600;color:#222}
+.summary-value.orange{color:#f5871f}
+.summary-value.red{color:#e24b4a}
+.table-card{background:#fff;border-radius:8px;border:0.5px solid #eee;overflow:hidden}
+.table-toolbar{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f0}
+.table-toolbar-left{font-size:13px;color:#666}
+.table-toolbar-left span{color:#f5871f;font-weight:600}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#fafafa;color:#555;font-weight:500;padding:10px 12px;text-align:left;border-bottom:1px solid #f0f0f0;white-space:nowrap;position:sticky;top:0}
+td{padding:9px 12px;border-bottom:1px solid #f7f7f7;color:#333;white-space:nowrap}
+tr:hover td{background:#fffaf5}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px}
+.tag-yes{background:#e8f5e9;color:#2e7d32}
+.tag-no{background:#fafafa;color:#999}
+.num-orange{color:#f5871f;font-weight:600}
+.num-red{color:#e24b4a;font-weight:600}
+.num-zero{color:#ccc}
+.pagination{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f0f0f0}
+.page-info{font-size:12px;color:#999}
+.page-btns{display:flex;gap:6px}
+.page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.page-btn.active{background:#f5871f;color:#fff;border-color:#f5871f}
+.page-btn:hover:not(.active){border-color:#f5871f;color:#f5871f}
+.empty{padding:60px;text-align:center;color:#aaa;font-size:13px}
+.loading{padding:40px;text-align:center;color:#aaa}
+.material-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-icon">库</div>
+    <span class="header-title">智能库存管理系统</span>
+  </div>
+  <div class="header-nav">
+    <div class="nav-item active">库存查询</div>
+    <div class="nav-item"><a href="admin.html" target="_blank">后台维护</a></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 筛选区 -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="filter-item">
+        <span class="filter-label">产品组</span>
+        <select id="f-productGroup"><option value="">请选择</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">仓库编码</span>
+        <input type="text" id="f-warehouseCode" placeholder="请输入">
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">仓库名称</span>
+        <select id="f-warehouseName"><option value="">请选择</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">产品线</span>
+        <select id="f-productLine"><option value="">请选择</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">物料编码</span>
+        <input type="text" id="f-materialCode" placeholder="请输入">
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">物料名称</span>
+        <input type="text" id="f-materialName" placeholder="请输入">
+      </div>
+    </div>
+    <div class="filter-row row2">
+      <div class="filter-item">
+        <span class="filter-label">物料型号</span>
+        <input type="text" id="f-materialModel" placeholder="请输入">
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">仓库属性</span>
+        <select id="f-warehouseAttr"><option value="">请选择</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">仓库来源</span>
+        <select id="f-warehouseSource"><option value="">请选择</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">是否可制单</span>
+        <select id="f-canOrder"><option value="">请选择</option><option value="是">是</option><option value="否">否</option></select>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="doSearch()">查询</button>
+        <button class="btn btn-default" onclick="doReset()">重置</button>
+        <button class="btn btn-export" onclick="doExport()">导出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 汇总统计 -->
+  <div class="summary-bar" id="summaryBar">
+    <div class="summary-item">
+      <span class="summary-label">结果条数</span>
+      <span class="summary-value" id="s-total">0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">在库总量</span>
+      <span class="summary-value orange" id="s-stock">0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">锁库总量</span>
+      <span class="summary-value red" id="s-lock">0</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">可用库存</span>
+      <span class="summary-value" id="s-avail">0</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:#bbb" id="s-updateTime">数据更新时间：-</span>
+  </div>
+
+  <!-- 数据表格 -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="table-toolbar-left">共查询到 <span id="t-count">0</span> 条记录</div>
+      <div style="display:flex;gap:8px">
+        <select id="pageSizeSelect" style="height:28px;border:1px solid #d9d9d9;border-radius:4px;padding:0 8px;font-size:12px" onchange="changePageSize()">
+          <option value="20">20条/页</option>
+          <option value="50">50条/页</option>
+          <option value="100">100条/页</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>仓库编码</th>
+            <th>仓库名称</th>
+            <th>仓库属性</th>
+            <th>仓库来源</th>
+            <th>产品组</th>
+            <th>KPI产品线</th>
+            <th>产品线</th>
+            <th>物料编码</th>
+            <th>物料名称</th>
+            <th>物料型号</th>
+            <th>是否可制单</th>
+            <th>供方生产待入库</th>
+            <th>调拨待入库量</th>
+            <th style="color:#f5871f">在库库存量</th>
+            <th style="color:#e24b4a">锁库量</th>
+            <th>可用库存</th>
+            <th>更新时间</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="17" class="empty">请点击查询按钮获取数据</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <div class="page-info" id="pageInfo">-</div>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let allData = [];
+let filtered = [];
+let currentPage = 1;
+let pageSize = 20;
+
+// 初始化下拉选项
+function initFilters() {
+  const inv = DB.getInventory();
+  const unique = (key) => [...new Set(inv.map(r => r[key]).filter(Boolean))].sort();
+  const fillSelect = (id, values) => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = '<option value="">请选择</option>';
+    values.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      if (v === cur) opt.selected = true;
+      el.appendChild(opt);
+    });
+  };
+  fillSelect('f-productGroup', unique('productGroup'));
+  fillSelect('f-warehouseName', unique('warehouseName'));
+  fillSelect('f-productLine', unique('productLine'));
+  fillSelect('f-warehouseAttr', unique('warehouseAttr'));
+  fillSelect('f-warehouseSource', unique('warehouseSource'));
+}
+
+function doSearch() {
+  const inv = DB.getInventory();
+  const pg = document.getElementById('f-productGroup').value.trim();
+  const wc = document.getElementById('f-warehouseCode').value.trim().toLowerCase();
+  const wn = document.getElementById('f-warehouseName').value.trim();
+  const pl = document.getElementById('f-productLine').value.trim();
+  const mc = document.getElementById('f-materialCode').value.trim().toLowerCase();
+  const mn = document.getElementById('f-materialName').value.trim().toLowerCase();
+  const mm = document.getElementById('f-materialModel').value.trim().toLowerCase();
+  const wa = document.getElementById('f-warehouseAttr').value.trim();
+  const ws = document.getElementById('f-warehouseSource').value.trim();
+  const co = document.getElementById('f-canOrder').value.trim();
+
+  filtered = inv.filter(r => {
+    if (pg && r.productGroup !== pg) return false;
+    if (wc && !r.warehouseCode.toLowerCase().includes(wc)) return false;
+    if (wn && r.warehouseName !== wn) return false;
+    if (pl && r.productLine !== pl) return false;
+    if (mc && !r.materialCode.toLowerCase().includes(mc)) return false;
+    if (mn && !r.materialName.toLowerCase().includes(mn)) return false;
+    if (mm && !(r.materialModel||'').toLowerCase().includes(mm)) return false;
+    if (wa && r.warehouseAttr !== wa) return false;
+    if (ws && r.warehouseSource !== ws) return false;
+    if (co && r.canOrder !== co) return false;
+    return true;
+  });
+
+  currentPage = 1;
+  updateSummary();
+  renderTable();
+}
+
+function doReset() {
+  ['f-productGroup','f-warehouseName','f-productLine','f-warehouseAttr','f-warehouseSource','f-canOrder'].forEach(id => document.getElementById(id).value = '');
+  ['f-warehouseCode','f-materialCode','f-materialName','f-materialModel'].forEach(id => document.getElementById(id).value = '');
+  filtered = [];
+  updateSummary();
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="17" class="empty">请点击查询按钮获取数据</td></tr>';
+  document.getElementById('pageInfo').textContent = '-';
+  document.getElementById('pageBtns').innerHTML = '';
+  document.getElementById('t-count').textContent = '0';
+}
+
+function updateSummary() {
+  const total = filtered.length;
+  const stock = filtered.reduce((s,r) => s + (r.stockQty||0), 0);
+  const lock = filtered.reduce((s,r) => s + (r.lockQty||0), 0);
+  document.getElementById('s-total').textContent = total.toLocaleString();
+  document.getElementById('s-stock').textContent = stock.toLocaleString();
+  document.getElementById('s-lock').textContent = lock.toLocaleString();
+  document.getElementById('s-avail').textContent = (stock - lock).toLocaleString();
+  document.getElementById('t-count').textContent = total.toLocaleString();
+  const times = filtered.map(r => r.updatedAt).filter(Boolean);
+  if (times.length) document.getElementById('s-updateTime').textContent = '数据更新时间：' + times[0];
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * pageSize;
+  const page = filtered.slice(start, start + pageSize);
+  const tbody = document.getElementById('tableBody');
+  if (page.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="17" class="empty">暂无数据</td></tr>';
+    renderPager();
+    return;
+  }
+  tbody.innerHTML = page.map(r => {
+    const avail = (r.stockQty||0) - (r.lockQty||0);
+    return `<tr>
+      <td>${r.warehouseCode||''}</td>
+      <td>${r.warehouseName||''}</td>
+      <td>${r.warehouseAttr||''}</td>
+      <td>${r.warehouseSource||''}</td>
+      <td>${r.productGroup||''}</td>
+      <td>${r.kpiLine||''}</td>
+      <td>${r.productLine||''}</td>
+      <td>${r.materialCode||''}</td>
+      <td><span class="material-name" title="${r.materialName||''}">${r.materialName||''}</span></td>
+      <td>${r.materialModel||''}</td>
+      <td><span class="tag ${r.canOrder==='是'?'tag-yes':'tag-no'}">${r.canOrder||'否'}</span></td>
+      <td class="${r.pendingSupply>0?'num-orange':'num-zero'}">${r.pendingSupply||0}</td>
+      <td class="${r.pendingAlloc>0?'num-orange':'num-zero'}">${r.pendingAlloc||0}</td>
+      <td class="${r.stockQty>0?'num-orange':'num-zero'}">${r.stockQty||0}</td>
+      <td class="${r.lockQty>0?'num-red':'num-zero'}">${r.lockQty||0}</td>
+      <td class="${avail>0?'':'num-zero'}">${avail}</td>
+      <td style="color:#bbb;font-size:11px">${r.updatedAt||''}</td>
+    </tr>`;
+  }).join('');
+  renderPager();
+}
+
+function renderPager() {
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / pageSize);
+  document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages||1} 页，共 ${total} 条`;
+  const btns = document.getElementById('pageBtns');
+  btns.innerHTML = '';
+  const addBtn = (label, page, active=false, disabled=false) => {
+    const b = document.createElement('button');
+    b.className = 'page-btn' + (active?' active':'');
+    b.textContent = label;
+    b.disabled = disabled;
+    if (!disabled) b.onclick = () => { currentPage = page; renderTable(); };
+    btns.appendChild(b);
+  };
+  addBtn('上一页', currentPage-1, false, currentPage<=1);
+  const start = Math.max(1, currentPage-2);
+  const end = Math.min(totalPages, currentPage+2);
+  for (let i=start;i<=end;i++) addBtn(i, i, i===currentPage);
+  addBtn('下一页', currentPage+1, false, currentPage>=totalPages);
+}
+
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+  currentPage = 1;
+  if (filtered.length > 0) renderTable();
+}
+
+function doExport() {
+  if (!filtered.length) { alert('请先查询数据再导出'); return; }
+  const headers = ['仓库编码','仓库名称','仓库属性','仓库来源','产品组','KPI产品线','产品线','物料编码','物料名称','物料型号','是否可制单','供方生产待入库','调拨待入库量','在库库存量','锁库量','可用库存','更新时间'];
+  const rows = filtered.map(r => [r.warehouseCode,r.warehouseName,r.warehouseAttr,r.warehouseSource,r.productGroup,r.kpiLine,r.productLine,r.materialCode,r.materialName,r.materialModel,r.canOrder,r.pendingSupply,r.pendingAlloc,r.stockQty,r.lockQty,(r.stockQty-r.lockQty),r.updatedAt]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '库存查询结果');
+  XLSX.writeFile(wb, `库存查询_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.xlsx`);
+}
+
+// 监听storage变化（后台更新后刷新）
+window.addEventListener('storage', (e) => {
+  if (e.key === DB.INVENTORY_KEY) {
+    initFilters();
+    if (filtered.length > 0) doSearch();
+  }
+});
+
+initFilters();
+doSearch();
+</script>
+</body>
+</html>
