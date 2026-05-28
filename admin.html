@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库存后台维护</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft YaHei',Arial,sans-serif;background:#f5f6fa;color:#333;font-size:13px}
+.header{background:#fff;border-bottom:1px solid #e8e8e8;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px}
+.header-logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#f5871f;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700}
+.header-title{font-size:16px;font-weight:600;color:#222}
+.tabs{display:flex;gap:0;border-bottom:2px solid #f0f0f0;background:#fff;padding:0 24px}
+.tab{padding:12px 20px;cursor:pointer;font-size:13px;color:#666;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#f5871f;border-bottom-color:#f5871f;font-weight:500}
+.tab:hover:not(.active){color:#333}
+.main{padding:20px 24px}
+.panel{display:none}
+.panel.active{display:block}
+.card{background:#fff;border-radius:8px;border:0.5px solid #eee;margin-bottom:16px}
+.card-header{padding:14px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:500;color:#222}
+.card-body{padding:20px}
+.filter-row{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:12px;align-items:flex-end;margin-bottom:16px}
+.filter-item{display:flex;flex-direction:column;gap:4px}
+.filter-label{font-size:12px;color:#666}
+.filter-item input,.filter-item select{height:32px;border:1px solid #d9d9d9;border-radius:4px;padding:0 10px;font-size:12px;color:#333;background:#fff;outline:none}
+.filter-item input:focus,.filter-item select:focus{border-color:#f5871f}
+.btn-row{display:flex;gap:8px}
+.btn{height:32px;padding:0 16px;border-radius:4px;border:none;cursor:pointer;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.85}
+.btn-primary{background:#f5871f;color:#fff}
+.btn-default{background:#fff;color:#555;border:1px solid #d9d9d9}
+.btn-success{background:#52c41a;color:#fff}
+.btn-danger{background:#ff4d4f;color:#fff}
+.btn-info{background:#1890ff;color:#fff}
+.btn-warn{background:#faad14;color:#fff}
+.btn-sm{height:28px;padding:0 10px;font-size:12px}
+.toolbar{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f0;gap:8px;flex-wrap:wrap}
+.toolbar-left{display:flex;gap:8px;flex-wrap:wrap}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#fafafa;color:#555;font-weight:500;padding:10px 12px;text-align:left;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f7f7f7;color:#333}
+tr:hover td{background:#fffaf5}
+.num-orange{color:#f5871f;font-weight:600}
+.num-red{color:#e24b4a;font-weight:600}
+.num-zero{color:#ccc}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px}
+.tag-yes{background:#e8f5e9;color:#2e7d32}
+.tag-no{background:#fafafa;color:#999;border:1px solid #eee}
+.tag-add{background:#e6f7ff;color:#1890ff}
+.tag-update{background:#fff7e6;color:#d46b08}
+.tag-delete{background:#fff1f0;color:#cf1322}
+.tag-import{background:#f6ffed;color:#389e0d}
+.action-btns{display:flex;gap:6px}
+.pagination{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f0f0f0}
+.page-info{font-size:12px;color:#999}
+.page-btns{display:flex;gap:6px}
+.page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.page-btn.active{background:#f5871f;color:#fff;border-color:#f5871f}
+.page-btn:hover:not(.active){border-color:#f5871f;color:#f5871f}
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:10px;width:680px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:500}
+.modal-close{cursor:pointer;font-size:18px;color:#999;line-height:1;border:none;background:none;padding:4px}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-item{display:flex;flex-direction:column;gap:5px}
+.form-item.full{grid-column:1/-1}
+.form-label{font-size:12px;color:#555}
+.form-label .req{color:#ff4d4f}
+.form-item input,.form-item select,.form-item textarea{border:1px solid #d9d9d9;border-radius:4px;padding:7px 10px;font-size:13px;color:#333;background:#fff;outline:none;transition:border .2s}
+.form-item input:focus,.form-item select:focus,.form-item textarea:focus{border-color:#f5871f}
+.form-item textarea{resize:vertical;min-height:60px}
+/* Import area */
+.upload-area{border:2px dashed #d9d9d9;border-radius:8px;padding:40px 20px;text-align:center;cursor:pointer;transition:border .2s;background:#fafafa}
+.upload-area:hover,.upload-area.dragover{border-color:#f5871f;background:#fffaf5}
+.upload-icon{font-size:36px;color:#ccc;margin-bottom:8px}
+.upload-text{color:#999;font-size:13px}
+.upload-text strong{color:#f5871f}
+.import-preview{margin-top:16px;border:1px solid #f0f0f0;border-radius:6px;overflow:hidden}
+.import-preview-header{padding:10px 14px;background:#fafafa;font-size:12px;color:#666;border-bottom:1px solid #f0f0f0}
+.import-preview table{font-size:11px}
+.import-preview th{background:#f5f5f5}
+.msg{padding:8px 14px;border-radius:4px;font-size:12px;margin-top:10px}
+.msg-success{background:#f6ffed;color:#389e0d;border:1px solid #b7eb8f}
+.msg-error{background:#fff1f0;color:#cf1322;border:1px solid #ffa39e}
+.msg-info{background:#e6f7ff;color:#1890ff;border:1px solid #91d5ff}
+.ledger-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px}
+.change-pos{color:#52c41a}
+.change-neg{color:#ff4d4f}
+.change-zero{color:#aaa}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-icon">库</div>
+    <span class="header-title">库存后台维护管理</span>
+  </div>
+  <div style="display:flex;gap:16px;align-items:center">
+    <a href="index.html" target="_blank" style="color:#f5871f;font-size:13px;text-decoration:none">→ 前台查询页</a>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('inventory')">库存维护</div>
+  <div class="tab" onclick="switchTab('import')">批量导入</div>
+  <div class="tab" onclick="switchTab('ledger')">流水变动明细</div>
+</div>
+
+<div class="main">
+
+  <!-- ===== 库存维护 Tab ===== -->
+  <div class="panel active" id="tab-inventory">
+    <div class="card">
+      <div class="card-body" style="padding-bottom:0">
+        <div class="filter-row">
+          <div class="filter-item">
+            <span class="filter-label">仓库名称</span>
+            <select id="af-warehouseName"><option value="">全部</option></select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">物料编码</span>
+            <input type="text" id="af-materialCode" placeholder="模糊搜索">
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">物料型号</span>
+            <input type="text" id="af-materialModel" placeholder="模糊搜索">
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">产品组</span>
+            <select id="af-productGroup"><option value="">全部</option></select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">是否可制单</span>
+            <select id="af-canOrder"><option value="">全部</option><option>是</option><option>否</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="adminSearch()">查询</button>
+            <button class="btn btn-default" onclick="adminReset()">重置</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button class="btn btn-success" onclick="openAddModal()">+ 新增</button>
+          <button class="btn btn-default" onclick="downloadTemplate()">下载导入模板</button>
+        </div>
+        <div style="font-size:12px;color:#999">共 <span id="admin-count" style="color:#f5871f;font-weight:600">0</span> 条</div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>仓库编码</th>
+              <th>仓库名称</th>
+              <th>仓库属性</th>
+              <th>产品组</th>
+              <th>产品线</th>
+              <th>物料编码</th>
+              <th>物料名称</th>
+              <th>物料型号</th>
+              <th>是否可制单</th>
+              <th>供方待入库</th>
+              <th>调拨待入库</th>
+              <th style="color:#f5871f">在库库存量</th>
+              <th style="color:#e24b4a">锁库量</th>
+              <th>可用库存</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <tr><td colspan="16" style="text-align:center;padding:40px;color:#aaa">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="admin-pageInfo">-</div>
+        <div class="page-btns" id="admin-pageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 批量导入 Tab ===== -->
+  <div class="panel" id="tab-import">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Excel 批量导入库存</span>
+        <button class="btn btn-default btn-sm" onclick="downloadTemplate()">下载导入模板</button>
+      </div>
+      <div class="card-body">
+        <div class="msg msg-info" style="margin-bottom:16px">
+          请先下载导入模板，按模板格式填写后上传。支持 .xlsx / .xls 格式。<br>
+          导入规则：相同【仓库编码 + 物料编码】的记录将被更新，新记录直接追加。
+        </div>
+
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:13px;color:#555;font-weight:500">导入模式：</span>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:5px">
+            <input type="radio" name="importMode" value="append" checked> 追加更新（推荐）
+          </label>
+          <label style="cursor:pointer;display:flex;align-items:center;gap:5px">
+            <input type="radio" name="importMode" value="overwrite"> 清空重建（慎用）
+          </label>
+        </div>
+
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()" 
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleDrop(event)">
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">点击或拖拽文件到此处上传<br><strong>支持 .xlsx / .xls</strong></div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(this)">
+
+        <div id="importPreview"></div>
+        <div id="importMsg"></div>
+
+        <div style="margin-top:16px;display:flex;gap:10px" id="importActions" style="display:none">
+          <button class="btn btn-primary" id="btnDoImport" onclick="doImport()" style="display:none">确认导入</button>
+          <button class="btn btn-default" onclick="clearImport()">清除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 流水变动明细 Tab ===== -->
+  <div class="panel" id="tab-ledger">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">库存流水变动明细</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-default btn-sm" onclick="clearLedger()">清空流水</button>
+          <button class="btn btn-export btn-sm" onclick="exportLedger()" style="background:#fff;color:#f5871f;border:1px solid #f5871f">导出流水</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding-bottom:0">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:flex-end;margin-bottom:16px">
+          <div class="filter-item">
+            <span class="filter-label">物料编码</span>
+            <input type="text" id="lf-materialCode" placeholder="模糊搜索">
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">仓库名称</span>
+            <select id="lf-warehouseName"><option value="">全部</option></select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">变动类型</span>
+            <select id="lf-changeType">
+              <option value="">全部</option>
+              <option>手动调整</option>
+              <option>新增入库</option>
+              <option>删除记录</option>
+              <option>导入更新</option>
+              <option>导入新增</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">操作人</span>
+            <input type="text" id="lf-operator" placeholder="模糊搜索">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="ledgerSearch()">查询</button>
+            <button class="btn btn-default" onclick="ledgerReset()">重置</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar" style="padding-top:0;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:12px;color:#999">共 <span id="ledger-count" style="color:#f5871f;font-weight:600">0</span> 条流水记录</div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>变动时间</th>
+              <th>物料编码</th>
+              <th>物料名称</th>
+              <th>仓库名称</th>
+              <th>变动类型</th>
+              <th>变动前库存</th>
+              <th>库存变动量</th>
+              <th>变动后库存</th>
+              <th>变动前锁库</th>
+              <th>锁库变动量</th>
+              <th>变动后锁库</th>
+              <th>操作人</th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTableBody">
+            <tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa">暂无流水记录</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="ledger-pageInfo">-</div>
+        <div class="page-btns" id="ledger-pageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 新增/编辑 Modal ===== -->
+<div class="modal-overlay" id="editModal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">新增库存记录</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span> 仓库编码</label>
+          <input type="text" id="m-warehouseCode" placeholder="如：HZ001">
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span> 仓库名称</label>
+          <input type="text" id="m-warehouseName" placeholder="如：杭州RDC仓">
+        </div>
+        <div class="form-item">
+          <label class="form-label">仓库属性</label>
+          <select id="m-warehouseAttr">
+            <option value="">请选择</option>
+            <option>成品仓</option>
+            <option>破损仓</option>
+            <option>退货仓</option>
+            <option>备品仓</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label">仓库来源</label>
+          <input type="text" id="m-warehouseSource" placeholder="如：JLP">
+        </div>
+        <div class="form-item">
+          <label class="form-label">产品组</label>
+          <input type="text" id="m-productGroup" placeholder="如：净厨组">
+        </div>
+        <div class="form-item">
+          <label class="form-label">KPI产品线</label>
+          <input type="text" id="m-kpiLine" placeholder="如：饮水">
+        </div>
+        <div class="form-item">
+          <label class="form-label">产品线</label>
+          <input type="text" id="m-productLine" placeholder="如：饮水机">
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span> 物料编码</label>
+          <input type="text" id="m-materialCode" placeholder="如：1BJ01001080">
+        </div>
+        <div class="form-item full">
+          <label class="form-label"><span class="req">*</span> 物料名称</label>
+          <input type="text" id="m-materialName" placeholder="物料完整名称描述">
+        </div>
+        <div class="form-item">
+          <label class="form-label">物料型号</label>
+          <input type="text" id="m-materialModel" placeholder="如：JYW-WH265">
+        </div>
+        <div class="form-item">
+          <label class="form-label">是否可制单</label>
+          <select id="m-canOrder"><option value="否">否</option><option value="是">是</option></select>
+        </div>
+        <div class="form-item">
+          <label class="form-label">供方生产待入库</label>
+          <input type="number" id="m-pendingSupply" value="0" min="0">
+        </div>
+        <div class="form-item">
+          <label class="form-label">调拨待入库量</label>
+          <input type="number" id="m-pendingAlloc" value="0" min="0">
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span> 在库库存量</label>
+          <input type="number" id="m-stockQty" value="0" min="0">
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span> 锁库量</label>
+          <input type="number" id="m-lockQty" value="0" min="0">
+        </div>
+        <div class="form-item full">
+          <label class="form-label">调整备注</label>
+          <textarea id="m-reason" placeholder="请输入本次调整原因（可选）"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveItem()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 删除确认 Modal ===== -->
+<div class="modal-overlay" id="deleteModal" style="display:none" onclick="if(event.target===this)closeDeleteModal()">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <span class="modal-title">确认删除</span>
+      <button class="modal-close" onclick="closeDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#555;line-height:1.8">确定要删除该库存记录吗？<br>此操作将同步写入流水变动明细，<strong style="color:#ff4d4f">不可恢复</strong>。</p>
+      <p style="color:#f5871f;font-size:12px;margin-top:12px" id="deleteItemInfo"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeDeleteModal()">取消</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+
+// ===== Tab 切换 =====
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'inventory') { initAdminFilters(); adminSearch(); }
+  if (name === 'ledger') { initLedgerFilters(); ledgerSearch(); }
+}
+
+// ===== 库存维护 =====
+let adminFiltered = [];
+let adminPage = 1;
+const adminPageSize = 20;
+
+function initAdminFilters() {
+  const inv = DB.getInventory();
+  const unique = k => [...new Set(inv.map(r => r[k]).filter(Boolean))].sort();
+  const fill = (id, vals) => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = '<option value="">全部</option>';
+    vals.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; if(v===cur) o.selected=true; el.appendChild(o); });
+  };
+  fill('af-warehouseName', unique('warehouseName'));
+  fill('af-productGroup', unique('productGroup'));
+}
+
+function adminSearch() {
+  const inv = DB.getInventory();
+  const wn = document.getElementById('af-warehouseName').value;
+  const mc = document.getElementById('af-materialCode').value.trim().toLowerCase();
+  const mm = document.getElementById('af-materialModel').value.trim().toLowerCase();
+  const pg = document.getElementById('af-productGroup').value;
+  const co = document.getElementById('af-canOrder').value;
+  adminFiltered = inv.filter(r => {
+    if(wn && r.warehouseName !== wn) return false;
+    if(mc && !r.materialCode.toLowerCase().includes(mc)) return false;
+    if(mm && !(r.materialModel||'').toLowerCase().includes(mm)) return false;
+    if(pg && r.productGroup !== pg) return false;
+    if(co && r.canOrder !== co) return false;
+    return true;
+  });
+  adminPage = 1;
+  renderAdminTable();
+}
+
+function adminReset() {
+  ['af-warehouseName','af-productGroup','af-canOrder'].forEach(id => document.getElementById(id).value = '');
+  ['af-materialCode','af-materialModel'].forEach(id => document.getElementById(id).value = '');
+  adminSearch();
+}
+
+function renderAdminTable() {
+  document.getElementById('admin-count').textContent = adminFiltered.length;
+  const start = (adminPage - 1) * adminPageSize;
+  const page = adminFiltered.slice(start, start + adminPageSize);
+  const tbody = document.getElementById('adminTableBody');
+  if (!page.length) { tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:#aaa">暂无数据</td></tr>'; renderAdminPager(); return; }
+  tbody.innerHTML = page.map(r => {
+    const avail = (r.stockQty||0) - (r.lockQty||0);
+    return `<tr>
+      <td>${r.warehouseCode||''}</td>
+      <td>${r.warehouseName||''}</td>
+      <td>${r.warehouseAttr||''}</td>
+      <td>${r.productGroup||''}</td>
+      <td>${r.productLine||''}</td>
+      <td style="font-weight:500">${r.materialCode||''}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.materialName||''}">${r.materialName||''}</td>
+      <td>${r.materialModel||''}</td>
+      <td><span class="tag ${r.canOrder==='是'?'tag-yes':'tag-no'}">${r.canOrder||'否'}</span></td>
+      <td class="${r.pendingSupply>0?'num-orange':'num-zero'}">${r.pendingSupply||0}</td>
+      <td class="${r.pendingAlloc>0?'num-orange':'num-zero'}">${r.pendingAlloc||0}</td>
+      <td class="${r.stockQty>0?'num-orange':'num-zero'}">${r.stockQty||0}</td>
+      <td class="${r.lockQty>0?'num-red':'num-zero'}">${r.lockQty||0}</td>
+      <td class="${avail>0?'':'num-zero'}">${avail}</td>
+      <td style="color:#bbb;font-size:11px">${r.updatedAt||''}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-info btn-sm" onclick="openEditModal(${r.id})">编辑</button>
+          <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${r.id})">删除</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  renderAdminPager();
+}
+
+function renderAdminPager() {
+  const total = adminFiltered.length;
+  const totalPages = Math.ceil(total / adminPageSize) || 1;
+  document.getElementById('admin-pageInfo').textContent = `第 ${adminPage}/${totalPages} 页，共 ${total} 条`;
+  const btns = document.getElementById('admin-pageBtns');
+  btns.innerHTML = '';
+  const add = (label, p, active, disabled) => {
+    const b = document.createElement('button'); b.className = 'page-btn'+(active?' active':'');
+    b.textContent = label; b.disabled = disabled;
+    if(!disabled) b.onclick = () => { adminPage = p; renderAdminTable(); };
+    btns.appendChild(b);
+  };
+  add('上一页', adminPage-1, false, adminPage<=1);
+  const s = Math.max(1,adminPage-2), e = Math.min(totalPages,adminPage+2);
+  for(let i=s;i<=e;i++) add(i,i,i===adminPage,false);
+  add('下一页', adminPage+1, false, adminPage>=totalPages);
+}
+
+// ===== 新增/编辑 Modal =====
+let editingId = null;
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '新增库存记录';
+  ['warehouseCode','warehouseName','warehouseSource','productGroup','kpiLine','productLine','materialCode','materialName','materialModel','reason'].forEach(k => document.getElementById('m-'+k).value = '');
+  document.getElementById('m-warehouseAttr').value = '';
+  document.getElementById('m-canOrder').value = '否';
+  ['pendingSupply','pendingAlloc','stockQty','lockQty'].forEach(k => document.getElementById('m-'+k).value = 0);
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function openEditModal(id) {
+  const inv = DB.getInventory();
+  const item = inv.find(r => r.id === id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = '编辑库存记录';
+  document.getElementById('m-warehouseCode').value = item.warehouseCode||'';
+  document.getElementById('m-warehouseName').value = item.warehouseName||'';
+  document.getElementById('m-warehouseAttr').value = item.warehouseAttr||'';
+  document.getElementById('m-warehouseSource').value = item.warehouseSource||'';
+  document.getElementById('m-productGroup').value = item.productGroup||'';
+  document.getElementById('m-kpiLine').value = item.kpiLine||'';
+  document.getElementById('m-productLine').value = item.productLine||'';
+  document.getElementById('m-materialCode').value = item.materialCode||'';
+  document.getElementById('m-materialName').value = item.materialName||'';
+  document.getElementById('m-materialModel').value = item.materialModel||'';
+  document.getElementById('m-canOrder').value = item.canOrder||'否';
+  document.getElementById('m-pendingSupply').value = item.pendingSupply||0;
+  document.getElementById('m-pendingAlloc').value = item.pendingAlloc||0;
+  document.getElementById('m-stockQty').value = item.stockQty||0;
+  document.getElementById('m-lockQty').value = item.lockQty||0;
+  document.getElementById('m-reason').value = '';
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+function saveItem() {
+  const get = id => document.getElementById('m-'+id).value.trim();
+  const getNum = id => parseInt(document.getElementById('m-'+id).value) || 0;
+  if (!get('warehouseCode') || !get('warehouseName') || !get('materialCode') || !get('materialName')) {
+    alert('请填写必填项（仓库编码、仓库名称、物料编码、物料名称）');
+    return;
+  }
+  const item = {
+    warehouseCode: get('warehouseCode'),
+    warehouseName: get('warehouseName'),
+    warehouseAttr: get('warehouseAttr'),
+    warehouseSource: get('warehouseSource'),
+    productGroup: get('productGroup'),
+    kpiLine: get('kpiLine'),
+    productLine: get('productLine'),
+    materialCode: get('materialCode'),
+    materialName: get('materialName'),
+    materialModel: get('materialModel'),
+    canOrder: get('canOrder'),
+    pendingSupply: getNum('pendingSupply'),
+    pendingAlloc: getNum('pendingAlloc'),
+    stockQty: getNum('stockQty'),
+    lockQty: getNum('lockQty'),
+  };
+  const reason = get('reason') || (editingId ? '手动调整' : '新增记录');
+  if (editingId) {
+    item.id = editingId;
+    DB.updateItem(item, '管理员', reason);
+  } else {
+    DB.addItem(item, '管理员');
+  }
+  closeModal();
+  initAdminFilters();
+  adminSearch();
+}
+
+// ===== 删除 =====
+let deletingId = null;
+function openDeleteModal(id) {
+  deletingId = id;
+  const item = DB.getInventory().find(r => r.id === id);
+  document.getElementById('deleteItemInfo').textContent = item ? `物料编码：${item.materialCode}  物料名称：${item.materialName}` : '';
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; deletingId = null; }
+function confirmDelete() {
+  if (deletingId == null) return;
+  DB.deleteItem(deletingId, '管理员');
+  closeDeleteModal();
+  initAdminFilters();
+  adminSearch();
+}
+
+// ===== 下载模板 =====
+function downloadTemplate() {
+  const headers = ['仓库编码','仓库名称','仓库属性','仓库来源','产品组','KPI产品线','产品线','物料编码','物料名称','物料型号','是否可制单','供方生产待入库','调拨待入库量','在库库存量','锁库量'];
+  const sample = [['HZ001','杭州RDC仓','成品仓','JLP','净厨组','饮水','饮水机','1BJ01001080','饮水机、JYW-WH265、沙丘灰','JYW-WH265','否',0,0,100,20]];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
+  ws['!cols'] = headers.map(() => ({wch:18}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '库存导入模板');
+  XLSX.writeFile(wb, '库存导入模板.xlsx');
+}
+
+// ===== 批量导入 =====
+let importData = [];
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) parseExcel(file);
+}
+function handleFileSelect(input) {
+  if (input.files[0]) parseExcel(input.files[0]);
+}
+function parseExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (rows.length < 2) { showImportMsg('文件内容为空，请检查', 'error'); return; }
+      const headers = rows[0];
+      const fieldMap = {
+        '仓库编码':'warehouseCode','仓库名称':'warehouseName','仓库属性':'warehouseAttr',
+        '仓库来源':'warehouseSource','产品组':'productGroup','KPI产品线':'kpiLine',
+        '产品线':'productLine','物料编码':'materialCode','物料名称':'materialName',
+        '物料型号':'materialModel','是否可制单':'canOrder',
+        '供方生产待入库':'pendingSupply','调拨待入库量':'pendingAlloc',
+        '在库库存量':'stockQty','锁库量':'lockQty'
+      };
+      importData = rows.slice(1).filter(r => r.some(c => c !== '')).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { if(fieldMap[h]) obj[fieldMap[h]] = row[i]; });
+        obj.stockQty = parseInt(obj.stockQty) || 0;
+        obj.lockQty = parseInt(obj.lockQty) || 0;
+        obj.pendingSupply = parseInt(obj.pendingSupply) || 0;
+        obj.pendingAlloc = parseInt(obj.pendingAlloc) || 0;
+        return obj;
+      }).filter(r => r.materialCode && r.warehouseCode);
+      renderImportPreview();
+    } catch(err) {
+      showImportMsg('文件解析失败：' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImportPreview() {
+  if (!importData.length) { showImportMsg('未解析到有效数据，请检查文件格式', 'error'); return; }
+  const preview = importData.slice(0,5);
+  const html = `<div class="import-preview">
+    <div class="import-preview-header">预览前 ${Math.min(5,importData.length)} 条（共 ${importData.length} 条有效数据）</div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>仓库编码</th><th>仓库名称</th><th>物料编码</th><th>物料名称</th><th>库存量</th><th>锁库量</th></tr></thead>
+      <tbody>${preview.map(r=>`<tr><td>${r.warehouseCode}</td><td>${r.warehouseName||''}</td><td>${r.materialCode}</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.materialName||''}</td><td class="num-orange">${r.stockQty}</td><td class="num-red">${r.lockQty}</td></tr>`).join('')}</tbody>
+    </table></div></div>`;
+  document.getElementById('importPreview').innerHTML = html;
+  document.getElementById('btnDoImport').style.display = 'inline-flex';
+  document.getElementById('importActions').style.display = 'flex';
+  showImportMsg(`已解析 ${importData.length} 条记录，请确认后点击【确认导入】`, 'info');
+}
+
+function doImport() {
+  if (!importData.length) return;
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  if (mode === 'overwrite' && !confirm('⚠️ 清空重建模式将删除所有现有数据，确定继续？')) return;
+  const total = DB.importBatch(importData, mode, '管理员');
+  showImportMsg(`导入成功！当前共 ${total} 条库存记录。`, 'success');
+  document.getElementById('importPreview').innerHTML = '';
+  document.getElementById('btnDoImport').style.display = 'none';
+  importData = [];
+  document.getElementById('fileInput').value = '';
+}
+
+function clearImport() {
+  importData = [];
+  document.getElementById('importPreview').innerHTML = '';
+  document.getElementById('importMsg').innerHTML = '';
+  document.getElementById('btnDoImport').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+}
+
+function showImportMsg(text, type) {
+  const cls = {success:'msg-success', error:'msg-error', info:'msg-info'}[type] || 'msg-info';
+  document.getElementById('importMsg').innerHTML = `<div class="msg ${cls}">${text}</div>`;
+}
+
+// ===== 流水明细 =====
+let ledgerFiltered = [];
+let ledgerPage = 1;
+const ledgerPageSize = 30;
+
+function initLedgerFilters() {
+  const inv = DB.getInventory();
+  const names = [...new Set(inv.map(r=>r.warehouseName).filter(Boolean))].sort();
+  const el = document.getElementById('lf-warehouseName');
+  const cur = el.value;
+  el.innerHTML = '<option value="">全部</option>';
+  names.forEach(n => { const o = document.createElement('option'); o.value=n; o.textContent=n; if(n===cur) o.selected=true; el.appendChild(o); });
+}
+
+function ledgerSearch() {
+  const ledger = DB.getLedger();
+  const mc = document.getElementById('lf-materialCode').value.trim().toLowerCase();
+  const wn = document.getElementById('lf-warehouseName').value;
+  const ct = document.getElementById('lf-changeType').value;
+  const op = document.getElementById('lf-operator').value.trim().toLowerCase();
+  ledgerFiltered = ledger.filter(r => {
+    if(mc && !(r.materialCode||'').toLowerCase().includes(mc)) return false;
+    if(wn && r.warehouseName !== wn) return false;
+    if(ct && r.changeType !== ct) return false;
+    if(op && !(r.operator||'').toLowerCase().includes(op)) return false;
+    return true;
+  });
+  ledgerPage = 1;
+  renderLedgerTable();
+}
+
+function ledgerReset() {
+  ['lf-materialCode','lf-operator'].forEach(id => document.getElementById(id).value='');
+  ['lf-warehouseName','lf-changeType'].forEach(id => document.getElementById(id).value='');
+  ledgerSearch();
+}
+
+function renderLedgerTable() {
+  document.getElementById('ledger-count').textContent = ledgerFiltered.length;
+  const start = (ledgerPage-1)*ledgerPageSize;
+  const page = ledgerFiltered.slice(start, start+ledgerPageSize);
+  const tbody = document.getElementById('ledgerTableBody');
+  if(!page.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:40px;color:#aaa">暂无流水记录</td></tr>';renderLedgerPager();return;}
+  const typeTag = t => {
+    const map = {'新增入库':'tag-add','删除记录':'tag-delete','手动调整':'tag-update','导入更新':'tag-import','导入新增':'tag-add'};
+    return `<span class="tag ${map[t]||'tag-update'}">${t}</span>`;
+  };
+  const chg = (v) => {
+    if(v>0) return `<span class="change-pos">+${v}</span>`;
+    if(v<0) return `<span class="change-neg">${v}</span>`;
+    return `<span class="change-zero">0</span>`;
+  };
+  tbody.innerHTML = page.map(r => `<tr>
+    <td style="font-size:11px;color:#999">${r.createdAt||''}</td>
+    <td style="font-weight:500">${r.materialCode||''}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.materialName||''}">${r.materialName||''}</td>
+    <td>${r.warehouseName||''}</td>
+    <td>${typeTag(r.changeType)}</td>
+    <td>${r.stockBefore??'-'}</td>
+    <td>${chg(r.stockChange)}</td>
+    <td>${r.stockAfter??'-'}</td>
+    <td>${r.lockBefore??'-'}</td>
+    <td>${chg(r.lockChange)}</td>
+    <td>${r.lockAfter??'-'}</td>
+    <td>${r.operator||''}</td>
+    <td style="color:#999;font-size:11px">${r.reason||''}</td>
+  </tr>`).join('');
+  renderLedgerPager();
+}
+
+function renderLedgerPager() {
+  const total = ledgerFiltered.length;
+  const totalPages = Math.ceil(total/ledgerPageSize)||1;
+  document.getElementById('ledger-pageInfo').textContent = `第 ${ledgerPage}/${totalPages} 页，共 ${total} 条`;
+  const btns = document.getElementById('ledger-pageBtns');
+  btns.innerHTML = '';
+  const add = (label,p,active,disabled) => {
+    const b=document.createElement('button'); b.className='page-btn'+(active?' active':'');
+    b.textContent=label; b.disabled=disabled;
+    if(!disabled) b.onclick=()=>{ledgerPage=p;renderLedgerTable();};
+    btns.appendChild(b);
+  };
+  add('上一页',ledgerPage-1,false,ledgerPage<=1);
+  const s=Math.max(1,ledgerPage-2),e=Math.min(totalPages,ledgerPage+2);
+  for(let i=s;i<=e;i++) add(i,i,i===ledgerPage,false);
+  add('下一页',ledgerPage+1,false,ledgerPage>=totalPages);
+}
+
+function clearLedger() {
+  if(!confirm('确定清空所有流水记录？此操作不可恢复！')) return;
+  localStorage.removeItem(DB.LEDGER_KEY);
+  ledgerSearch();
+}
+
+function exportLedger() {
+  const ledger = DB.getLedger();
+  if(!ledger.length){alert('暂无流水记录');return;}
+  const headers=['变动时间','物料编码','物料名称','仓库名称','变动类型','变动前库存','库存变动量','变动后库存','变动前锁库','锁库变动量','变动后锁库','操作人','备注'];
+  const rows = ledger.map(r=>[r.createdAt,r.materialCode,r.materialName,r.warehouseName,r.changeType,r.stockBefore,r.stockChange,r.stockAfter,r.lockBefore,r.lockChange,r.lockAfter,r.operator,r.reason]);
+  const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '库存流水明细');
+  XLSX.writeFile(wb, `库存流水_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.xlsx`);
+}
+
+// 初始化
+initAdminFilters();
+adminSearch();
+</script>
+</body>
+</html>
